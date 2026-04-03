@@ -1,18 +1,17 @@
 import React from 'react';
 import SidebarCart from './components/SidebarCart';
+import CakeVisualizer from './components/CakeVisualizer';
 
 function App() {
   return (
-    <div className="min-h-screen bg-white flex">
-      {/* Area Tengah / Kiri (Tempat Visualizer Nanti) */}
-      <div className="flex-1 flex items-center justify-center">
-        <h1 className="text-3xl font-bold text-gray-300">
-          Kanvas Utama (Nanti isi visual kue di sini)
-        </h1>
-      </div>
+    <div className="h-screen w-full bg-white flex overflow-hidden font-sans">
+      
+      {/* Area Tengah: Kanvas Custom Cake */}
+      <CakeVisualizer />
 
-      {/* Area Kanan (Panggil komponen keranjang) */}
+      {/* Area Kanan: Keranjang Belanja */}
       <SidebarCart />
+      
     </div>
   );
 }
