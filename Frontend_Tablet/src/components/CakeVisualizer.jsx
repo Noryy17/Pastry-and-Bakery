@@ -1,123 +1,227 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import gsap from 'gsap';
 
-export default function CakeVisualizer() {
-  const cakeContainerRef = useRef(null); // Ref untuk seluruh objek kue
-  const [activeSize, setActiveSize] = useState('Medium');
-  const [activeFlavor, setActiveFlavor] = useState('Matcha');
+// ==========================================
+// 1. KOMPONEN ANIMASI LELEHAN (DRIP)
+// ==========================================
+const AnimatedDrip = ({ color }) => {
+  const dripRef = useRef(null);
+  useEffect(() => {
+    gsap.fromTo(dripRef.current,
+      { scaleY: 0, opacity: 0 },
+      { scaleY: 1, opacity: 1, duration: 1.4, ease: "elastic.out(1, 0.4)", transformOrigin: "top" }
+    );
+  }, [color]);
 
-  // Daftar Rasa & Warna Perspektif (HEX Premium)
-  // 'top' untuk sisi atas (terang), 'side' untuk dinding samping (gelap/shadow)
+  return (
+    <svg
+      ref={dripRef}
+      viewBox="0 0 300 100"
+      className="absolute top-0 left-0 w-full z-10"
+      preserveAspectRatio="none"
+      style={{ height: '90px' }}
+    >
+      {/* Blok solid atas agar tidak ada gap */}
+      <rect x="0" y="0" width="300" height="30" fill={color} />
+      {/* Tetesan lelehan organik super rapi */}
+      <path
+        fill={color}
+        d="M0,0 H300 V28 C285,28 280,55 270,65 S255,75 248,60 C242,48 238,72 230,80 S215,88 208,70 C202,55 198,78 190,85 S175,90 170,72 C165,58 161,80 153,88 S138,92 132,75 C127,62 122,84 113,90 S98,94 93,77 C88,63 83,86 74,92 S59,95 53,78 C48,64 43,87 35,93 S20,96 15,80 C10,68 5,90 0,95 Z"
+      />
+    </svg>
+  );
+};
+
+// ==========================================
+// KOMPONEN UTAMA CAKE VISUALIZER
+// ==========================================
+
+export default function CakeVisualizer({ activeSize, setActiveSize, activeFlavor, setActiveFlavor, onAddToCart }) {
+  const cakeContainerRef = useRef(null);
+  
+  // STATE: SINGLE SELECTION (Ultra Clean)
+  const [activeTopping, setActiveTopping] = useState('None');
+
   const flavors = {
-    Chocolate: { 
-      top: 'linear-gradient(135deg, #6F4E37 0%, #4B2C20 100%)', 
-      side: 'linear-gradient(to bottom, #4B2C20 0%, #2D1810 100%)',
-      label: 'DARK CHOCO', heart: '🍫'
-    },
-    Strawberry: { 
-      top: 'linear-gradient(135deg, #FBCFE8 0%, #F472B6 100%)', 
-      side: 'linear-gradient(to bottom, #F472B6 0%, #BE185D 100%)',
-      label: 'SWEET BERRY', heart: '🍓'
-    },
-    Matcha: { 
-      top: 'linear-gradient(135deg, #D9F99D 0%, #84CC16 100%)', 
-      side: 'linear-gradient(to bottom, #84CC16 0%, #4D7C0F 100%)',
-      label: 'PREMIUM MATCHA', heart: '🍵'
-    },
-    Vanilla: { 
-      top: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)', 
-      side: 'linear-gradient(to bottom, #FEF3C7 0%, #F59E0B 100%)',
-      label: 'CLASSIC VANILLA', heart: '🍦'
-    },
+    Strawberry: { top: '#FBCFE8', side: '#F472B6', label: 'STRAWBERRY', basePrice: 150000 },
+    Chocolate:  { top: '#D4A373', side: '#A16207', label: 'CHOCOLATE',  basePrice: 160000 },
+    Matcha:     { top: '#D9F99D', side: '#84CC16', label: 'MATCHA',     basePrice: 175000 },
+    Vanilla:    { top: '#FEF3C7', side: '#F59E0B', label: 'VANILLA',    basePrice: 140000 },
   };
 
-  // GSAP: Animasi masuk (Scale + Bounce)
+  // DATA TOPPING BERSIH (Hanya Polosan atau Drip)
+  const toppings = {
+    None: { name: 'Tanpa Topping', price: 0, type: 'none', thumb: '🚫' },
+    ChocoDrip: { name: 'Choco Drip', price: 15000, type: 'drip', color: '#3E2008', thumb: '🍫' },
+    VanillaDrip: { name: 'Vanilla Sauce', price: 12000, type: 'drip', color: '#FFF8DC', thumb: '🥛' }
+  };
+
+  const sizeMultipliers = { Small: 0.8, Medium: 1.0, Large: 1.3 };
+  const currentPrice = (flavors[activeFlavor].basePrice * sizeMultipliers[activeSize]) + toppings[activeTopping].price;
+
+  // Animasi Inisial & Resize
   useEffect(() => {
     gsap.fromTo(cakeContainerRef.current,
-      { y: 50, opacity: 0, scale: 0.5 }, 
-      { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "back.out(1.7)" }
+      { y: 50, opacity: 0, scale: 0.5 },
+      { y: 0, opacity: 1, scale: sizeMultipliers[activeSize], duration: 1.2, ease: "back.out(1.5)" }
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // GSAP: Efek membal saat ganti ukuran (Animasikan seluruh container)
-  const changeSize = (size, scaleValue) => {
+  const handleSizeChange = (size) => {
     setActiveSize(size);
-    gsap.to(cakeContainerRef.current, {
-      scale: scaleValue,
-      duration: 0.8,
-      ease: "elastic.out(1, 0.5)",
-    });
+    gsap.to(cakeContainerRef.current, { scale: sizeMultipliers[size], duration: 0.6, ease: "elastic.out(1, 0.6)" });
   };
 
   return (
-    <div className="flex-1 bg-[#F8FAFC] flex flex-col items-center justify-center relative overflow-hidden font-sans antialiased">
-      
-      {/* Header Info */}
-      <div className="absolute top-8 left-8 z-30">
-        <h1 className="text-4xl font-bold text-[#1E293B] tracking-tight">Asri Cake Visualizer</h1>
-        <p className="text-[#64748B] mt-2 font-medium">Atur ukuran dan rasa dasar untuk kue kustom Dain</p>
+    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-700">
+
+      {/* Header Harga */}
+      <div className="flex justify-between items-center pb-2 border-b-2 border-[#E0E0E0]">
+        <div>
+          <h1 className="text-3xl font-extrabold text-[#264653]">Mode Custom Tart</h1>
+          <p className="text-[#607D8B]">Visualisasi minimalis, elegan & presisi.</p>
+        </div>
+        <div className="text-right bg-white p-4 rounded-2xl shadow-sm border border-[#E0E0E0]">
+          <p className="text-[10px] font-extrabold text-[#757575] tracking-widest uppercase mb-1">Total Estimasi</p>
+          <p className="text-3xl font-black text-[#E76F51]">
+            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(currentPrice)}
+          </p>
+        </div>
       </div>
 
-      {/* Kanvas Utama dengan Perspektif CSS */}
-      <div className="relative w-[600px] h-[500px] flex items-center justify-center [perspective:1000px]">
-        
-        {/* Shadow Lantai (Halus) */}
-        <div className="absolute bottom-20 w-[300px] h-[40px] bg-black/10 rounded-full blur-2xl z-0"></div>
-        
-        {/* Container Utama Kue (Objek yang dianimasikan GSAP) */}
-        <div ref={cakeContainerRef} className="relative w-[320px] h-[280px] flex items-center justify-center z-10 [transform-style:preserve-3d]">
-          
-          {/* LAYER 1: SISI SAMPING/DINDING KUE (Pseudo-3D Depth) */}
-          <div 
-            style={{ background: flavors[activeFlavor].side }}
-            className="absolute top-[60px] w-full h-[180px] rounded-b-[160px/80px] shadow-[0_15px_30px_rgba(0,0,0,0.2)] z-10"
-          ></div>
+      {/* KANVAS KUE */}
+      <div className="relative w-full h-[450px] bg-white rounded-[32px] shadow-[0_20px_50px_rgba(38,70,83,0.04)] border border-[#E0E0E0] flex items-center justify-center overflow-hidden">
+        <div ref={cakeContainerRef} className="relative w-[300px] h-[200px]">
 
-          {/* LAYER 2: SISI ATAS KUE (Elips Perspektif) */}
-          <div 
-            style={{ background: flavors[activeFlavor].top }}
-            className="absolute top-0 w-full h-[120px] rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.1)] border-b-4 border-black/10 flex items-center justify-center z-20"
+          {/* ── LAYER 1: BADAN KUE (SIDE) ── */}
+          <div
+            className="absolute w-full transition-colors duration-500 z-10"
+            style={{
+              top: '60px',
+              height: '120px',
+              backgroundColor: flavors[activeFlavor].side,
+              borderBottomLeftRadius: '50% 60px',
+              borderBottomRightRadius: '50% 60px',
+              boxShadow: '0 30px 50px rgba(38, 70, 83, 0.12)',
+            }}
           >
-            {/* Label Rasa Glassmorphism - MIRIP TARGET */}
-            <div className="flex flex-col items-center gap-1 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-inner">
-              <span className="text-white font-bold text-[11px] tracking-[0.25em] mix-blend-overlay uppercase">{flavors[activeFlavor].label}</span>
-              <span className="text-white/70 text-lg mix-blend-overlay">{flavors[activeFlavor].heart}</span>
+            {/* Render Drip Tersembunyi (Tidak bocor ke bawah) */}
+            {toppings[activeTopping].type === 'drip' && (
+              <div
+                className="absolute top-0 left-0 w-full pointer-events-none"
+                style={{ height: '90px', overflow: 'hidden' }}
+              >
+                <AnimatedDrip key={activeTopping} color={toppings[activeTopping].color} />
+              </div>
+            )}
+          </div>
+
+          {/* ── LAYER 2: ATAS KUE (TOP ELLIPSE) ── */}
+          <div
+            className="absolute top-0 w-full h-[120px] transition-colors duration-500 z-20"
+            style={{
+              backgroundColor: flavors[activeFlavor].top,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              boxShadow: 'inset 0px -4px 12px rgba(0,0,0,0.05)',
+            }}
+          >
+            {/* Lapisan saus radial-gradient di atas kue (Sangat Realistis!) */}
+            {toppings[activeTopping].type === 'drip' && (
+              <div
+                key={`${activeTopping}-top`}
+                className="absolute inset-0 animate-in fade-in duration-500"
+                style={{
+                  background: `radial-gradient(ellipse at 40% 35%, ${toppings[activeTopping].color}cc, ${toppings[activeTopping].color}f0)`,
+                  zIndex: 5,
+                  boxShadow: 'inset 0px -6px 16px rgba(0,0,0,0.15)',
+                }}
+              />
+            )}
+
+            {/* Label rasa di tengah */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/70 backdrop-blur-md text-[#264653] text-[10px] font-black px-4 py-1.5 rounded-full border border-white/50 shadow-sm uppercase tracking-widest z-30">
+              {flavors[activeFlavor].label}
             </div>
           </div>
-          
+
         </div>
       </div>
 
-      {/* Control Panel (Flavor & Size Selector) */}
-      <div className="absolute bottom-10 flex flex-col items-center gap-6 z-30">
-        
-        {/* Flavor Selector (Premium Chips) */}
-        <div className="flex gap-3 p-3 bg-white rounded-2xl shadow-sm border border-[#E2E8F0]">
-          {Object.keys(flavors).map((f) => (
-            <button
-              key={f}
-              onClick={() => setActiveFlavor(f)}
-              className={`w-12 h-12 rounded-xl border-4 transition-all duration-300 active:scale-95 ${activeFlavor === f ? 'border-indigo-600 scale-110 shadow-lg' : 'border-transparent hover:border-gray-100'}`}
-              style={{ background: flavors[f].side }}
-              title={f}
-            />
-          ))}
-        </div>
+      {/* PANEL KONTROL */}
+      <div className="flex flex-col gap-5 p-6 bg-white rounded-3xl border border-[#E0E0E0] shadow-sm">
 
-        {/* Size Selector */}
-        <div className="flex gap-4 p-2 bg-white rounded-2xl shadow-lg border border-[#E2E8F0]">
-          {['Small', 'Medium', 'Large'].map((size) => (
-            <button 
-              key={size}
-              onClick={() => changeSize(size, size === 'Small' ? 0.8 : size === 'Large' ? 1.2 : 1)}
-              className={`px-10 py-3 rounded-xl font-bold transition-all ${activeSize === size ? 'bg-[#4F46E5] text-white' : 'text-[#64748B] hover:bg-gray-50'}`}
+        {/* Ukuran & Rasa */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="flex flex-col gap-3">
+            <span className="text-sm font-bold text-[#455A64] ml-2">Ukuran Kue</span>
+            <div className="flex gap-2">
+              {['Small', 'Medium', 'Large'].map((size) => (
+                <button key={size} onClick={() => handleSizeChange(size)}
+                  className={`flex-1 py-3 rounded-2xl text-sm font-bold transition-all ${
+                    activeSize === size
+                      ? 'bg-[#2A9D8F] text-white shadow-md'
+                      : 'bg-[#FDFBF6] text-[#607D8B] hover:bg-[#F5F5F5] border border-[#E0E0E0]'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <span className="text-sm font-bold text-[#455A64] ml-2">Rasa Dasar</span>
+            <select
+              value={activeFlavor}
+              onChange={(e) => setActiveFlavor(e.target.value)}
+              className="w-full h-full bg-[#FDFBF6] text-[#264653] text-sm font-bold px-4 rounded-2xl border border-[#E0E0E0] outline-none cursor-pointer focus:border-[#2A9D8F]"
             >
-              {size} ( {size === 'Small' ? '16cm' : size === 'Large' ? '24cm' : '20cm'} )
-            </button>
-          ))}
+              {Object.keys(flavors).map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Tema Topping */}
+        <div className="flex flex-col gap-3 mt-2 border-t border-[#E0E0E0] pt-5">
+          <span className="text-sm font-bold text-[#455A64] ml-2">Tema Custom</span>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {Object.keys(toppings).map((tKey) => {
+              const t = toppings[tKey];
+              const isSelected = activeTopping === tKey;
+              return (
+                <button key={tKey} onClick={() => setActiveTopping(tKey)}
+                  className={`flex flex-col items-center justify-center min-w-[100px] p-3 rounded-2xl border transition-all ${
+                    isSelected
+                      ? 'border-[#2A9D8F] bg-[#E0F2F1] shadow-sm scale-105'
+                      : 'border-[#E0E0E0] bg-white hover:bg-[#FDFBF6]'
+                  }`}
+                >
+                  <span className="text-2xl mb-1">{t.thumb}</span>
+                  <span className={`text-[11px] font-bold ${isSelected ? 'text-[#2A9D8F]' : 'text-[#607D8B]'}`}>
+                    {t.name}
+                  </span>
+                  {t.price > 0 && <span className="text-[9px] text-[#A1887F] font-bold mt-1">+{(t.price / 1000)}k</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
       </div>
+
+      {/* Tombol Keranjang */}
+      <button
+        onClick={() => {
+          const toppingName = activeTopping === 'None' ? '' : ` (+ ${toppings[activeTopping].name})`;
+          const itemName = `Custom Tart ${activeFlavor}${toppingName}`;
+          onAddToCart({ name: itemName, size: activeSize, price: currentPrice, qty: 1 });
+        }}
+        className="w-full bg-[#E76F51] hover:bg-[#D65F41] text-white font-black py-4 rounded-3xl shadow-xl shadow-orange-100 transition-all active:scale-[0.98] text-lg flex justify-center items-center gap-3"
+      >
+        <span>➕ Masukkan Ke Pesanan Cart</span>
+      </button>
+
     </div>
   );
 }
